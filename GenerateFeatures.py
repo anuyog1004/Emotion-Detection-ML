@@ -48,14 +48,11 @@ def BuildTrainingData(files,label):
 				anglenose -= 90
 
 			for i in range(0,len(xlist)):
-				d = math.sqrt( (xlist[i]-xmean)*(xlist[i]-xmean) + (ylist[i]-ymean)*(ylist[i]-ymean) )
 				if xlist[i] == xmean:
 					angle = 90 - anglenose
 				else:
 					angle = int( math.atan( (ylist[i]-ymean)/(xlist[i]-xmean) )*(180/math.pi) ) - anglenose
-				# d=str(d)
 				angle=str(angle)
-				# X1.write(d + " " + angle + " ")
 				X1.write(angle + " ")
 
 			X1.write("\n")
@@ -96,14 +93,11 @@ def BuildValidationData(files,label):
 				anglenose -= 90
 
 			for i in range(0,len(xlist)):
-				d = math.sqrt( (xlist[i]-xmean)*(xlist[i]-xmean) + (ylist[i]-ymean)*(ylist[i]-ymean) )
 				if xlist[i] == xmean:
 					angle = 90 - anglenose
 				else:
 					angle = int( math.atan( (ylist[i]-ymean)/(xlist[i]-xmean) )*(180/math.pi) ) - anglenose
-				# d=str(d)
 				angle=str(angle)
-				# X2.write(d + " " + angle + " ")
 				X2.write(angle + " ")
 
 			X2.write("\n")
