@@ -73,9 +73,7 @@ for k,d in enumerate(detections):
 			angle = 90 - anglenose
 		else:
 			angle = int( math.atan( (ylist[i]-ymean)/(xlist[i]-xmean) )*(180/math.pi) ) - anglenose
-		#d=str(d)
 		angle=str(angle)
-		#X1.write(d + " " + angle)
 		X1.write(angle + " ")
 
 	X1.write("\n")
@@ -92,9 +90,6 @@ Xcv = np.loadtxt('MyFaceFeatures.txt')
 linear_svm = svm.SVC(C=1,kernel='linear',probability=True)
 linear_svm.fit(X,y.flatten())
 val = linear_svm.predict(Xcv)
-#val = linear_svm.predict_proba(Xcv)
-
-#orignal = raw_input("Which emotion where you showing : ")
 
 ### Displaying prediction  ####
 
@@ -108,30 +103,4 @@ if val==4:
 	print "Detected Emotion : ", "Happy"
 if val==5:
 	print "Detected Emotion : ", "Anger"
-if val==6:
-	print "Detected Emotion : ", "Contempt"
-if val==7:
-	print "Detected Emotion : ", "Fear"
-if val==8:
-	print "Detected Emotion : ", "Sadness"
 
-'''
-X1 = open("MyFaceFeatures.txt",'r')
-X2 = open("TrainingFeatures.txt",'a')
-Y2 = open("TrainingLabels.txt",'a')
-v = X1.read()
-X2.write(v + "\n")
-if orignal == 'disgust':
-	Y2.write("1" + "\n")
-if orignal == 'surprise':
-	Y2.write("2" + "\n")
-if orignal == 'neutral':
-	Y2.write("3" + "\n")
-if orignal == 'happy':
-	Y2.write("4" + "\n")
-if orignal == 'anger':
-	Y2.write("5" + "\n")
-X1.close()
-X2.close()
-Y2.close()
-'''
