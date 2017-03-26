@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
-emotions = ["neutral","anger","contempt","disgust","fear","happy","sadness","surprise"]
+emotions = ["neutral","anger","disgust","happy","surprise"]
 
 def ModifyImages(emotion):
     files = glob.glob("sorted_set/%s/*"%emotion)
