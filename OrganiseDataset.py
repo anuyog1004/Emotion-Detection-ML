@@ -1,7 +1,7 @@
 import glob
 from shutil import copyfile
 
-emotions = ["neutral", "anger", "disgust", "happy","surprise"]
+emotions = ["neutral","anger", "disgust", "happy","surprise"]
 participants = glob.glob("source_emotion/*")
 
 for x in participants:
