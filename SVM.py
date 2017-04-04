@@ -1,3 +1,6 @@
+# SVM algorithm applied on the data
+# Averagy Accuracy achieved = 88%
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io

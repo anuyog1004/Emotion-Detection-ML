@@ -1,3 +1,7 @@
+# Back Propagation algorithm applied on the data using 1 hidden layer
+# Average Accuracy achieved = 77%
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io
@@ -25,20 +29,20 @@ Xcv = np.insert(Xcv,0,1,axis=1)
 def flattenParams(thetas_list):
     flattened_list = [ mytheta.flatten() for mytheta in thetas_list ]
     combined = list(itertools.chain.from_iterable(flattened_list))
-    assert len(combined) == (67+1)*50 + (50+1)*5
+    assert len(combined) == (68)*50 + (51)*5
     return np.array(combined).reshape((len(combined),1))
 
 def reshapeParams(flattened_array):
-    theta1 = flattened_array[:(67+1)*50] .reshape((50,67+1))
-    theta2 = flattened_array[(67+1)*50:] .reshape((5,50+1))
+    theta1 = flattened_array[:(68)*50] .reshape((50,68))
+    theta2 = flattened_array[(68)*50:] .reshape((5,51))
     
     return [ theta1, theta2 ]
 
 def flattenX(myX):
-    return np.array(myX.flatten()).reshape((446*(67+1),1))
+    return np.array(myX.flatten()).reshape((446*(68),1))
 
 def reshapeX(flattenedX):
-    return np.array(flattenedX).reshape((446,67+1))
+    return np.array(flattenedX).reshape((446,68))
 
 # Forward Propagation
 

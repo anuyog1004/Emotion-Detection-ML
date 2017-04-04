@@ -1,3 +1,5 @@
+# This code captures a photo from the webcam and then detects the emotion in it. Use 'Y' key to capture the photo
+
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2

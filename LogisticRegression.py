@@ -1,3 +1,6 @@
+# Logistic Regression algorithm applied on the data
+# Average Accuracy Achieved = 90%
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import expit
