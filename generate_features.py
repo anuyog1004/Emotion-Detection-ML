@@ -9,8 +9,14 @@ import glob
 import math
 
 
-# Generate the features and the corresponding labels.
 def build_features(files, label, training_file, labels_file):
+    """
+    Generates the features and the corresponding labels.
+    :param files: Files containing the images from which features will be calculated.
+    :param label: Label number for the emotion.
+    :param training_file: File to which features will be written.
+    :param labels_file: File to which labels will be written.
+    """
     for file in files:
         img = cv2.imread(file)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -51,8 +57,12 @@ def build_features(files, label, training_file, labels_file):
             labels_file.write(label + "\n")
 
 
-# Build the features for training data and test data.
 def build_data(emotion, label):
+    """
+    Build the features for training data and test data.
+    :param emotion: Emotion for which features need to be generated.
+    :param label: Label number for the emotion.
+    """
     files = glob.glob('dataset/%s/*' % emotion)
     np.random.shuffle(files)
     training_data = []
