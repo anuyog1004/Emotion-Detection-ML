@@ -1,158 +1,346 @@
-# Back Propagation algorithm applied on the data using 1 hidden layer
-# Average Accuracy achieved = 77%
-
-
+"""
+This module implements a L layered neural network using back propagation algorithm.
+Mini batch gradient descent has been used as the optimization algorithm.
+Average Accuracy Achieved -
+    Training Data - 80%
+    Testing Data - 79%
+"""
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.io
-import scipy.optimize
-import scipy.misc
-import random
-import matplotlib.cm as cm
-from scipy.special import expit
-import itertools
-
-# Loading the data
-
-X = np.loadtxt("TrainingFeatures.txt",dtype=float)
-y = np.loadtxt("TrainingLabels.txt",dtype=int)
-Xcv = np.loadtxt("ValidationFeatures.txt",dtype=float)
-ycv = np.loadtxt("ValidationLabels.txt",dtype=int)
-y = np.array([y]).T
-ycv = np.array([ycv]).T
-X = np.insert(X,0,1,axis=1)
-Xcv = np.insert(Xcv,0,1,axis=1)
+import math
+from neural_network_utilities import sigmoid_forward, sigmoid_backward, relu_forward, relu_backward
 
 
-# Rolling and unrolling of parameters
+def initialize_parameters(layer_dims):
+    """
+        This function initializes the weights and bias matrices. He initialization has been used.
+        Arguments:
+            layer_dims -- python array (list) containing the dimensions of each layer in the network
 
-def flattenParams(thetas_list):
-    flattened_list = [ mytheta.flatten() for mytheta in thetas_list ]
-    combined = list(itertools.chain.from_iterable(flattened_list))
-    assert len(combined) == (68)*50 + (51)*5
-    return np.array(combined).reshape((len(combined),1))
+        Returns:
+            parameters -- python dictionary containing parameters "W1", "b1", ..., "WL", "bL":
+                            Wl -- weight matrix of shape (layer_dims[l], layer_dims[l-1])
+                            bl -- bias vector of shape (layer_dims[l], 1)
+        """
+    parameters = {}
+    L = len(layer_dims)
+    for i in xrange(1, L):
+        parameters["W" + str(i)] = np.random.randn(layer_dims[i], layer_dims[i - 1]) * np.sqrt(
+            2 / float(layer_dims[i - 1]))
+        parameters["b" + str(i)] = np.zeros((layer_dims[i], 1))
 
-def reshapeParams(flattened_array):
-    theta1 = flattened_array[:(68)*50] .reshape((50,68))
-    theta2 = flattened_array[(68)*50:] .reshape((5,51))
-    
-    return [ theta1, theta2 ]
+    return parameters
 
-def flattenX(myX):
-    return np.array(myX.flatten()).reshape((446*(68),1))
 
-def reshapeX(flattenedX):
-    return np.array(flattenedX).reshape((446,68))
+def random_mini_batches(X, Y, mini_batch_size):
+    """
+    This function creates the mini batches to be used for performing mini batch gradient descent algorithm.
+    Arguments:
+        X -- data, numpy array of shape (input size, number of examples).
+        Y -- true "label" vector.
+        mini_batch_size -- the number of examples in each mini batch( power of 2).
 
-# Forward Propagation
+    Returns:
+        mini_batches -- python list containing the mini batches.
+    """
+    m = X.shape[1]
+    mini_batches = []
 
-def ForwardPropagate(row,theta):  
-	features = row
-	for i in range(0,len(theta)):
-		Theta = theta[i]
-		z = np.dot(Theta,features.T)
-		a = expit(z)
-		if i == len(theta)-1:
-			return a
-		a = np.insert(a,0,1)
-		features = a.T    
+    # Step 1: Shuffle (X, Y)
+    permutation = list(np.random.permutation(m))
+    shuffled_X = X[:, permutation]
+    shuffled_Y = Y[:, permutation].reshape((5, m))
 
-# Cost Function to minimize
+    # Step 2: Partition (shuffled_X, shuffled_Y). Minus the end case.
+    num_complete_minibatches = math.floor(
+        m / mini_batch_size)  # number of mini batches of size mini_batch_size in partitioning
+    for k in xrange(int(num_complete_minibatches)):
+        mini_batch_X = shuffled_X[:, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
+        mini_batch_Y = shuffled_Y[:, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
 
-def GetCost(theta,X,y,ld):       
-	theta = reshapeParams(theta)
-	X = reshapeX(X)
-	total_cost = 0
-	m = X.shape[0]
-	for i in range(0,m):
-		row = X[i,:]
-		hs = ForwardPropagate(row,theta)
-		tempy = np.zeros((5,1))
-		tempy[y[i]-1]=1
-		t1 = -np.dot(tempy.T,np.log(hs))
-		t2 = -np.dot( (1-tempy).T, np.log(1-hs) )
-		cost = t1 + t2
-		total_cost += cost
-			
-	reg_cost = 0
-	for Theta in theta:
-		reg_cost += np.sum(Theta*Theta)
+    # Handling the end case (last mini-batch < mini_batch_size)
+    if m % mini_batch_size != 0:
+        mini_batch_X = shuffled_X[:, num_complete_minibatches * mini_batch_size:]
+        mini_batch_Y = shuffled_Y[:, num_complete_minibatches * mini_batch_size:]
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
 
-	reg_cost *= float(ld)/(2*m)
+    return mini_batches
 
-	return float((1./m)*total_cost) + reg_cost
 
-def SigmoidGradient(z):   
-	temp = expit(z)
-	return temp*(1-temp)
+def linear_forward(A, W, b):
+    """
+        This function takes in activation of previous layer, weight matrix of current layer, and bias matrix of current
+        layer to calculate Z of current layer.
 
-def RandomInitialisation(eps):
-	th1 = np.random.uniform(-eps,eps,(50,68))
-	th2 = np.random.uniform(-eps,eps,(5,51))
-	th = [th1,th2]
-	return th
+        Arguments:
+            A -- activations from previous layer (or input data): (size of previous layer, number of examples)
+            W -- weights matrix: numpy array of shape (size of current layer, size of previous layer)
+            b -- bias vector, numpy array of shape (size of the current layer, 1)
 
-# Back Propagation
+        Returns:
+            Z -- the input of the activation function, also called pre-activation parameter
+            cache -- a python dictionary containing "A", "W" and "b" ; stored for computing the backward pass efficiently
+            """
+    Z = np.dot(W, A) + b
+    linear_cache = (A, W, b)
+    return Z, linear_cache
 
-def BackProp(theta,X,y,ld):
-	theta = reshapeParams(theta)
-	X = reshapeX(X)
-	theta1 = theta[0]
-	theta2 = theta[1]
-	D1 = np.zeros((50,68))
-	D2 = np.zeros((5,51))
-	m = X.shape[0]
-	for i in range(0,m):
-		row = X[i,:]
-		a3 = np.array([ForwardPropagate(row,theta)]).T
-		tempy = np.zeros((5,1))
-		tempy[y[i]-1]=1
-		d3 = a3 - tempy
-		z2 = np.dot(theta1,row.T)
-		z2 = np.insert(z2,0,1)
-		g = SigmoidGradient(z2)
-		a2 = np.array(expit(z2))
-		g = np.array([g]).T
-		a2 = np.array([a2]).T
-		d2 = np.dot(theta2.T,d3) * g
-		D2 += np.dot(d3,a2.T)
-		d2 = d2[1:]
-		row = np.array([row])
-		D1 += np.dot(d2,row)
 
-	D1 = D1/float(m)
-	D2 = D2/float(m)
-	D1[:,1:] += float(ld/m)*theta1[:,1:]
-	D2[:,1:] += float(ld/m)*theta2[:,1:]
-	return flattenParams([D1,D2]).flatten()
+def linear_activation_forward(A_prev, W, b, activation):
+    """
+        This function takes in the activation of previous layer, weight matrix of current layer, and bias matrix of current layer to calculate the activation of the current layer
 
-def NeuralNetwork(X,y):
-	theta = RandomInitialisation(0.5)
-	theta = flattenParams(theta)
-	X = flattenX(X)
-	result = scipy.optimize.fmin_cg(GetCost,x0=theta,fprime=BackProp,args=(X,y,1),maxiter=100000,disp=True,full_output=True)
-	return result[0]
+        Arguments:
+            A_prev -- activations from previous layer (or input data): (size of previous layer, number of examples)
+            W -- weights matrix: numpy array of shape (size of current layer, size of previous layer)
+            b -- bias vector, numpy array of shape (size of the current layer, 1)
+            activation -- the activation to be used in this layer, stored as a text string: "sigmoid" or "relu"
 
-ltheta = NeuralNetwork(X,y)	
-ltheta = reshapeParams(ltheta)
+        Returns:
+            A -- the output of the activation function for current layer, also called the post-activation value
+            cache -- a python dictionary containing "linear_cache" and "activation_cache";
+                     stored for computing the backward pass efficiently
+            """
+    Z, linear_cache = linear_forward(A_prev, W, b)
+    if activation == "sigmoid":
+        A, activation_cache = sigmoid_forward(Z)
+    else:
+        A, activation_cache = relu_forward(Z)
 
-def NeuralAccuracy(X,y,Xcv,ycv):
-	total = Xcv.shape[0]
-	correct = 0
-	for i in range(0,total):
-		ans = ForwardPropagate(Xcv[i],ltheta)
-		res = -1
-		val = -1
-		for j in range(0,len(ans)):
-			if ans[j] > res:
-				res = ans[j]
-				val = j+1
+    cache = (linear_cache, activation_cache)
+    return A, cache
 
-		if val == ycv[i] :
-			correct += 1
 
-	print "Total : ", total
-	print "Correct : ", correct
-	print "Accuracy : ", float(correct)/float(total) * 100
+def forward_propagate(X, parameters):
+    """
+        This function implements the forward propagation algorithm by using relu activation (L-1) times and sigmoid
+        activation fot the last layer.
 
-NeuralAccuracy(X,y,Xcv,ycv)
+        Arguments:
+            X -- data, numpy array of shape (input size, number of examples)
+            parameters -- python dictionary containing parameters "W1", "b1", ..., "WL", "bL"
+
+        Returns:
+            AL -- last post-activation value
+            caches -- list of caches containing:
+                        every cache of linear_relu_forward()
+                        the cache of linear_sigmoid_forward()
+            """
+
+    caches = []
+    L = len(parameters) // 2
+    A_prev = X
+
+    for i in xrange(L - 1):
+        A, cache = linear_activation_forward(A_prev, parameters["W" + str(i + 1)], parameters["b" + str(i + 1)], "relu")
+        caches.append(cache)
+        A_prev = A
+
+    A, cache = linear_activation_forward(A_prev, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
+    caches.append(cache)
+
+    return A, caches
+
+
+def compute_cost(AL, Y):
+    """
+        Implement the cross entropy cost function.
+
+        Arguments:
+            AL -- probability vector corresponding to the label predictions.
+            Y -- true "label" vector
+
+        Returns:
+            cost -- cross-entropy cost
+            """
+    m = Y.shape[1]
+    cost = -np.sum(np.multiply(np.log(AL), Y) + np.multiply(np.log(1 - AL), 1 - Y)) / m
+    cost = np.squeeze(cost)
+
+    return cost
+
+
+def linear_backward(dZ, linear_cache):
+    """
+        This function takes in dZ of current layer and calculates dW of current layer, db of current layer and dA of previous layer
+
+        Arguments:
+        dZ -- Gradient of the cost with respect to the linear output (of current layer l)
+        linear_cache -- tuple of values (A_prev, W, b) coming from the forward propagation in the current layer
+
+        Returns:
+        dA_prev -- Gradient of the cost with respect to the activation (of the previous layer l-1), same shape as A_prev
+        dW -- Gradient of the cost with respect to W (current layer l), same shape as W
+        db -- Gradient of the cost with respect to b (current layer l), same shape as b
+        """
+    A_prev, W, b = linear_cache
+    m = A_prev.shape[1]
+
+    dW = np.dot(dZ, A_prev.T) / m
+    db = np.sum(dZ, axis=1, keepdims=True) / m
+    dA = np.dot(W.T, dZ)
+
+    return dA, dW, db
+
+
+def linear_activation_backward(dA, cache, activation):
+    """
+        This function takes in dA of current layer and calculates dW of current layer, db of current layer and dA of previous layer.
+
+        Arguments:
+            dA -- post-activation gradient for current layer l
+            cache -- tuple of values (linear_cache, activation_cache) stored for computing backward propagation efficiently
+            activation -- the activation to be used in this layer, stored as a text string: "sigmoid" or "relu"
+
+        Returns:
+            dA_prev -- Gradient of the cost with respect to the activation (of the previous layer l-1), same shape as A_prev
+            dW -- Gradient of the cost with respect to W (current layer l), same shape as W
+            db -- Gradient of the cost with respect to b (current layer l), same shape as b
+            """
+    linear_cache, activation_cache = cache
+    if activation == "sigmoid":
+        dZ = sigmoid_backward(dA, activation_cache)
+    else:
+        dZ = relu_backward(dA, activation_cache)
+
+    dA_prev, dW, db = linear_backward(dZ, linear_cache)
+    return dA_prev, dW, db
+
+
+def back_propagate(AL, Y, caches):
+    """
+        This function implements the back propagation algorithm by using linear_activation_backward with relu activation (L-1)
+        times and sigmoid activation once.
+
+        Arguments:
+            AL -- probability vector, output of the forward propagation
+            Y -- true "label" vector
+            caches -- list of caches of the form (linear_cache,activation_cache)
+
+        Returns:
+            grads -- A dictionary with the gradients
+                     grads["dA" + str(l)] = ...
+                     grads["dW" + str(l)] = ...
+                     grads["db" + str(l)] = ...
+            """
+    grads = {}
+    m = AL.shape[1]
+    L = len(caches)
+
+    dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
+
+    current_cache = caches[L - 1]
+    grads["dA" + str(L)], grads["dW" + str(L)], grads["db" + str(L)] = linear_activation_backward(dAL, current_cache,
+                                                                                                  "sigmoid")
+
+    for l in reversed(xrange(L - 1)):
+        current_cache = caches[l]
+        dA_prev, dW, db = linear_activation_backward(grads["dA" + str(l + 2)], current_cache, "relu")
+        grads["dA" + str(l + 1)] = dA_prev
+        grads["dW" + str(l + 1)] = dW
+        grads["db" + str(l + 1)] = db
+
+    return grads
+
+
+def update_parameters(parameters, grads, learning_rate):
+    """
+    This function performs the updates the parameters needed for gradient descent algorithm.
+    Arguments:
+        parameters -- python dictionary containing parameters "W1", "b1", ..., "WL", "bL"
+        grads -- dictionary with the gradients
+        learning_rate -- needed foe updating the parameters
+
+    Returns:
+        parameters -- the updated dictionary containing parameters "W1", "b1", ..., "WL", "bL"
+    """
+    L = len(parameters) / 2
+
+    for i in xrange(L):
+        parameters["W" + str(i + 1)] = parameters["W" + str(i + 1)] - (learning_rate * grads["dW" + str(i + 1)])
+        parameters["b" + str(i + 1)] = parameters["b" + str(i + 1)] - (learning_rate * grads["db" + str(i + 1)])
+
+    return parameters
+
+
+def print_accuracy(X, Y, parameters):
+    """
+    This function prints the accuracy by using the learned parameters.
+    Arguments:
+        X -- data on which accuracy needs to be calculated
+        Y -- true "label" vector
+        parameters -- python dictionary containing the learned "W1", "b1", ..., "WL", "bL"
+
+    Returns:
+        accuracy
+    """
+    AL, caches = forward_propagate(X, parameters)
+    m = X.shape[1]
+    correct = 0
+    for i in xrange(m):
+        training = np.array([Y[:, i]]).T
+        predicted = np.array([AL[:, i]]).T
+        if np.argmax(training) == np.argmax(predicted):
+            correct += 1
+
+    return (correct / float(m)) * 100
+
+
+if __name__ == '__main__':
+    # Load the data
+    X = np.loadtxt("TrainingFeatures.txt", dtype=float).T  # Shape (dimension,number_of_examples)
+    X_test = np.loadtxt("ValidationFeatures.txt", dtype=float).T  # Shape (dimension,number_of_examples)
+    temp_Y = np.array([np.loadtxt("TrainingLabels.txt", dtype=int)])
+    temp_Y_test = np.array([np.loadtxt("ValidationLabels.txt", dtype=int)])
+    Y = np.zeros((5, temp_Y.shape[1]))
+    Y_test = np.zeros((5, temp_Y_test.shape[1]))
+
+    # Convert Y to (number_of_classes,number_of_examples)
+    for i in xrange(Y.shape[1]):
+        Y[temp_Y[0][i] - 1][i] = 1
+
+    # Convert Y_test to (number_of_classes,number_of_examples)
+    for i in xrange(Y_test.shape[1]):
+        Y_test[temp_Y_test[0][i] - 1][i] = 1
+
+    # Normalise X
+    for i in xrange(X.shape[1]):
+        mean = np.mean(X[:, i])
+        var = np.var(X[:, i])
+        X[:, i] = (X[:, i] - mean) / var
+
+    # Normalise X_test
+    for i in xrange(X_test.shape[1]):
+        mean = np.mean(X_test[:, i])
+        var = np.var(X_test[:, i])
+        X_test[:, i] = (X_test[:, i] - mean) / var
+
+    # Initialize neural network architecture.
+    layer_dims = [X.shape[0], 50, Y.shape[0]]  # Since data is very less, using a single layer gives the most accuracy.
+    parameters = initialize_parameters(layer_dims)
+    costs = []
+    number_of_iterations = 75000
+    learning_rate = 0.4
+
+    mini_batches = random_mini_batches(X, Y, 32)
+
+    # Mini Batch Gradient Descent Algorithm.
+    for i in xrange(number_of_iterations):
+
+        for mini_batch in mini_batches:
+            (mini_batch_X, mini_batch_Y) = mini_batch
+
+            AL, caches = forward_propagate(mini_batch_X, parameters)
+            cost = compute_cost(AL, mini_batch_Y)
+
+            if i % 100 == 0:
+                costs.append(cost)
+
+            grads = back_propagate(AL, mini_batch_Y, caches)
+
+            parameters = update_parameters(parameters, grads, learning_rate)
+
+    print "Training Set Accuracy : ", print_accuracy(X, Y, parameters)
+    print "Test Set Accuracy : ", print_accuracy(X_test, Y_test, parameters)
