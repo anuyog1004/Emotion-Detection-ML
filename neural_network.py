@@ -1,9 +1,9 @@
 """
-This module implements a L layered neural network using back propagation algorithm.
-Mini batch gradient descent has been used as the optimization algorithm.
+This module implements an L(=4) layered neural network using back propagation algorithm.
+Mini batch gradient descent has been used along with L2 regularization.
 Average Accuracy Achieved -
-    Training Data - 80%
-    Testing Data - 79%
+    Training Data - 90%
+    Testing Data - 89%
 """
 import numpy as np
 import math
@@ -144,7 +144,7 @@ def forward_propagate(X, parameters):
     return A, caches
 
 
-def compute_cost(AL, Y):
+def compute_cost(AL, Y, parameters, lambd):
     """
         Implement the cross entropy cost function.
 
@@ -156,8 +156,16 @@ def compute_cost(AL, Y):
             cost -- cross-entropy cost
             """
     m = Y.shape[1]
-    cost = -np.sum(np.multiply(np.log(AL), Y) + np.multiply(np.log(1 - AL), 1 - Y)) / m
-    cost = np.squeeze(cost)
+    cross_entropy_cost = -np.sum(np.multiply(np.log(AL), Y) + np.multiply(np.log(1 - AL), 1 - Y)) / m
+    cross_entropy_cost = np.squeeze(cross_entropy_cost)
+
+    L = len(parameters) / 2
+
+    regularization_cost = 0
+    for i in xrange(L):
+        regularization_cost += np.sum(np.square(parameters["W" + str(i+1)]))
+
+    cost = cross_entropy_cost + ( (lambd * regularization_cost) / float(2*m) )
 
     return cost
 
@@ -209,7 +217,7 @@ def linear_activation_backward(dA, cache, activation):
     return dA_prev, dW, db
 
 
-def back_propagate(AL, Y, caches):
+def back_propagate(AL, Y, caches, parameters, lambd):
     """
         This function implements the back propagation algorithm by using linear_activation_backward with relu activation (L-1)
         times and sigmoid activation once.
@@ -234,10 +242,12 @@ def back_propagate(AL, Y, caches):
     current_cache = caches[L - 1]
     grads["dA" + str(L)], grads["dW" + str(L)], grads["db" + str(L)] = linear_activation_backward(dAL, current_cache,
                                                                                                   "sigmoid")
+    grads["dW" + str(L)] += (lambd * parameters["W" + str(L)]) / float(m)
 
     for l in reversed(xrange(L - 1)):
         current_cache = caches[l]
         dA_prev, dW, db = linear_activation_backward(grads["dA" + str(l + 2)], current_cache, "relu")
+        dW += (lambd * parameters["W" + str(l+1)]) / float(m)
         grads["dA" + str(l + 1)] = dA_prev
         grads["dW" + str(l + 1)] = dW
         grads["db" + str(l + 1)] = db
@@ -305,24 +315,19 @@ if __name__ == '__main__':
     for i in xrange(Y_test.shape[1]):
         Y_test[temp_Y_test[0][i] - 1][i] = 1
 
-    # Normalise X
-    for i in xrange(X.shape[1]):
-        mean = np.mean(X[:, i])
-        var = np.var(X[:, i])
-        X[:, i] = (X[:, i] - mean) / var
-
-    # Normalise X_test
-    for i in xrange(X_test.shape[1]):
-        mean = np.mean(X_test[:, i])
-        var = np.var(X_test[:, i])
-        X_test[:, i] = (X_test[:, i] - mean) / var
+    #Normalize the input data.
+    mean = np.mean(X,axis=1).reshape((X.shape[0],1))
+    var = np.var(X,axis=1).reshape((X.shape[0],1))
+    X = (X - mean) / np.sqrt(var)
+    X_test = (X_test - mean) / np.sqrt(var)
 
     # Initialize neural network architecture.
-    layer_dims = [X.shape[0], 50, Y.shape[0]]  # Since data is very less, using a single layer gives the most accuracy.
+    layer_dims = [X.shape[0], 50, 25, 15, Y.shape[0]]
     parameters = initialize_parameters(layer_dims)
     costs = []
-    number_of_iterations = 75000
-    learning_rate = 0.4
+    number_of_iterations = 7500
+    learning_rate = 0.001
+    lambd = 0.8
 
     mini_batches = random_mini_batches(X, Y, 32)
 
@@ -333,12 +338,12 @@ if __name__ == '__main__':
             (mini_batch_X, mini_batch_Y) = mini_batch
 
             AL, caches = forward_propagate(mini_batch_X, parameters)
-            cost = compute_cost(AL, mini_batch_Y)
+            cost = compute_cost(AL, mini_batch_Y,parameters,lambd)
 
             if i % 100 == 0:
                 costs.append(cost)
 
-            grads = back_propagate(AL, mini_batch_Y, caches)
+            grads = back_propagate(AL, mini_batch_Y, caches, parameters, lambd)
 
             parameters = update_parameters(parameters, grads, learning_rate)
 
