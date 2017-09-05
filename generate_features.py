@@ -65,7 +65,7 @@ def build_data(emotion, label):
     Build the features for training data and test data.
     Arguments:
         emotion: Emotion for which features need to be generated.
-        abel: Label number for the emotion.
+        label: Label number for the emotion.
     """
     files = glob.glob('dataset/%s/*' % emotion)
     np.random.shuffle(files)
@@ -77,10 +77,10 @@ def build_data(emotion, label):
     for i in xrange(training_data_length + 1, len(files)):
         cross_validation_data.append(files[i])
 
-    build_features(training_data, str(label),
-                   training_features, training_labels)
-    build_features(cross_validation_data, str(label),
-                   validation_features, validation_labels)
+    build_features(files=training_data, label=str(label),
+                   training_file=training_features, labels_file=training_labels)
+    build_features(files=cross_validation_data, label=str(label),
+                   training_file=validation_features, labels_file=validation_labels)
 
 
 if __name__ == '__main__':
@@ -106,4 +106,4 @@ if __name__ == '__main__':
 
         # Build training and testing data for each emotion.
         for emotion in emotions:
-            build_data(emotion, labels[emotion])
+            build_data(emotion=emotion, label=labels[emotion])

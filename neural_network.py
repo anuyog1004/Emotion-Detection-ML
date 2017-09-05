@@ -54,15 +54,19 @@ def random_mini_batches(X, Y, mini_batch_size):
     num_complete_minibatches = math.floor(
         m / mini_batch_size)  # number of mini batches of size mini_batch_size in partitioning
     for k in xrange(int(num_complete_minibatches)):
-        mini_batch_X = shuffled_X[:, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
-        mini_batch_Y = shuffled_Y[:, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
+        mini_batch_X = shuffled_X[
+            :, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
+        mini_batch_Y = shuffled_Y[
+            :, k * mini_batch_size:k * mini_batch_size + mini_batch_size]
         mini_batch = (mini_batch_X, mini_batch_Y)
         mini_batches.append(mini_batch)
 
     # Handling the end case (last mini-batch < mini_batch_size)
     if m % mini_batch_size != 0:
-        mini_batch_X = shuffled_X[:, num_complete_minibatches * mini_batch_size:]
-        mini_batch_Y = shuffled_Y[:, num_complete_minibatches * mini_batch_size:]
+        mini_batch_X = shuffled_X[
+            :, num_complete_minibatches * mini_batch_size:]
+        mini_batch_Y = shuffled_Y[
+            :, num_complete_minibatches * mini_batch_size:]
         mini_batch = (mini_batch_X, mini_batch_Y)
         mini_batches.append(mini_batch)
 
@@ -134,11 +138,13 @@ def forward_propagate(X, parameters):
     A_prev = X
 
     for i in xrange(L - 1):
-        A, cache = linear_activation_forward(A_prev, parameters["W" + str(i + 1)], parameters["b" + str(i + 1)], "relu")
+        A, cache = linear_activation_forward(
+            A_prev, parameters["W" + str(i + 1)], parameters["b" + str(i + 1)], "relu")
         caches.append(cache)
         A_prev = A
 
-    A, cache = linear_activation_forward(A_prev, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
+    A, cache = linear_activation_forward(
+        A_prev, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
     caches.append(cache)
 
     return A, caches
@@ -156,16 +162,18 @@ def compute_cost(AL, Y, parameters, lambd):
             cost -- cross-entropy cost
             """
     m = Y.shape[1]
-    cross_entropy_cost = -np.sum(np.multiply(np.log(AL), Y) + np.multiply(np.log(1 - AL), 1 - Y)) / m
+    cross_entropy_cost = - \
+        np.sum(np.multiply(np.log(AL), Y) +
+               np.multiply(np.log(1 - AL), 1 - Y)) / m
     cross_entropy_cost = np.squeeze(cross_entropy_cost)
 
     L = len(parameters) / 2
 
     regularization_cost = 0
     for i in xrange(L):
-        regularization_cost += np.sum(np.square(parameters["W" + str(i+1)]))
+        regularization_cost += np.sum(np.square(parameters["W" + str(i + 1)]))
 
-    cost = cross_entropy_cost + ( (lambd * regularization_cost) / float(2*m) )
+    cost = cross_entropy_cost + ((lambd * regularization_cost) / float(2 * m))
 
     return cost
 
@@ -246,8 +254,9 @@ def back_propagate(AL, Y, caches, parameters, lambd):
 
     for l in reversed(xrange(L - 1)):
         current_cache = caches[l]
-        dA_prev, dW, db = linear_activation_backward(grads["dA" + str(l + 2)], current_cache, "relu")
-        dW += (lambd * parameters["W" + str(l+1)]) / float(m)
+        dA_prev, dW, db = linear_activation_backward(
+            grads["dA" + str(l + 2)], current_cache, "relu")
+        dW += (lambd * parameters["W" + str(l + 1)]) / float(m)
         grads["dA" + str(l + 1)] = dA_prev
         grads["dW" + str(l + 1)] = dW
         grads["db" + str(l + 1)] = db
@@ -269,8 +278,10 @@ def update_parameters(parameters, grads, learning_rate):
     L = len(parameters) / 2
 
     for i in xrange(L):
-        parameters["W" + str(i + 1)] = parameters["W" + str(i + 1)] - (learning_rate * grads["dW" + str(i + 1)])
-        parameters["b" + str(i + 1)] = parameters["b" + str(i + 1)] - (learning_rate * grads["db" + str(i + 1)])
+        parameters["W" + str(i + 1)] = parameters["W" + str(i + 1)] - \
+            (learning_rate * grads["dW" + str(i + 1)])
+        parameters["b" + str(i + 1)] = parameters["b" + str(i + 1)] - \
+            (learning_rate * grads["db" + str(i + 1)])
 
     return parameters
 
@@ -300,8 +311,10 @@ def print_accuracy(X, Y, parameters):
 
 if __name__ == '__main__':
     # Load the data
-    X = np.loadtxt("TrainingFeatures.txt", dtype=float).T  # Shape (dimension,number_of_examples)
-    X_test = np.loadtxt("ValidationFeatures.txt", dtype=float).T  # Shape (dimension,number_of_examples)
+    # Shape (dimension,number_of_examples)
+    X = np.loadtxt("TrainingFeatures.txt", dtype=float).T
+    # Shape (dimension,number_of_examples)
+    X_test = np.loadtxt("ValidationFeatures.txt", dtype=float).T
     temp_Y = np.array([np.loadtxt("TrainingLabels.txt", dtype=int)])
     temp_Y_test = np.array([np.loadtxt("ValidationLabels.txt", dtype=int)])
     Y = np.zeros((5, temp_Y.shape[1]))
@@ -315,9 +328,9 @@ if __name__ == '__main__':
     for i in xrange(Y_test.shape[1]):
         Y_test[temp_Y_test[0][i] - 1][i] = 1
 
-    #Normalize the input data.
-    mean = np.mean(X,axis=1).reshape((X.shape[0],1))
-    var = np.var(X,axis=1).reshape((X.shape[0],1))
+    # Normalize the input data.
+    mean = np.mean(X, axis=1).reshape((X.shape[0], 1))
+    var = np.var(X, axis=1).reshape((X.shape[0], 1))
     X = (X - mean) / np.sqrt(var)
     X_test = (X_test - mean) / np.sqrt(var)
 
@@ -329,7 +342,7 @@ if __name__ == '__main__':
     learning_rate = 0.001
     lambd = 0.8
 
-    mini_batches = random_mini_batches(X, Y, 32)
+    mini_batches = random_mini_batches(X, Y, mini_batch_size=32)
 
     # Mini Batch Gradient Descent Algorithm.
     for i in xrange(number_of_iterations):
@@ -338,7 +351,7 @@ if __name__ == '__main__':
             (mini_batch_X, mini_batch_Y) = mini_batch
 
             AL, caches = forward_propagate(mini_batch_X, parameters)
-            cost = compute_cost(AL, mini_batch_Y,parameters,lambd)
+            cost = compute_cost(AL, mini_batch_Y, parameters, lambd)
 
             if i % 100 == 0:
                 costs.append(cost)
