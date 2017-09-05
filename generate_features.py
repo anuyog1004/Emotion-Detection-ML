@@ -12,10 +12,11 @@ import math
 def build_features(files, label, training_file, labels_file):
     """
     Generates the features and the corresponding labels.
-    :param files: Files containing the images from which features will be calculated.
-    :param label: Label number for the emotion.
-    :param training_file: File to which features will be written.
-    :param labels_file: File to which labels will be written.
+    Arguments:
+        files: Files containing the images from which features will be calculated.
+        label: Label number for the emotion.
+        training_file: File to which features will be written.
+        labels_file: File to which labels will be written.
     """
     for file in files:
         img = cv2.imread(file)
@@ -38,7 +39,8 @@ def build_features(files, label, training_file, labels_file):
             if xlist[26] == xlist[29]:
                 anglenose = 0
             else:
-                anglenose = int(math.atan((ylist[26] - ylist[29]) / (xlist[26] - xlist[29])) * (180 / math.pi))
+                anglenose = int(
+                    math.atan((ylist[26] - ylist[29]) / (xlist[26] - xlist[29])) * (180 / math.pi))
 
             if anglenose < 0:
                 anglenose += 90
@@ -49,7 +51,8 @@ def build_features(files, label, training_file, labels_file):
                 if xlist[i] == xmean:
                     angle = 90 - anglenose
                 else:
-                    angle = int(math.atan((ylist[i] - ymean) / (xlist[i] - xmean)) * (180 / math.pi)) - anglenose
+                    angle = int(math.atan(
+                        (ylist[i] - ymean) / (xlist[i] - xmean)) * (180 / math.pi)) - anglenose
                 angle = str(angle)
                 training_file.write(angle + " ")
 
@@ -60,8 +63,9 @@ def build_features(files, label, training_file, labels_file):
 def build_data(emotion, label):
     """
     Build the features for training data and test data.
-    :param emotion: Emotion for which features need to be generated.
-    :param label: Label number for the emotion.
+    Arguments:
+        emotion: Emotion for which features need to be generated.
+        abel: Label number for the emotion.
     """
     files = glob.glob('dataset/%s/*' % emotion)
     np.random.shuffle(files)
@@ -73,13 +77,16 @@ def build_data(emotion, label):
     for i in xrange(training_data_length + 1, len(files)):
         cross_validation_data.append(files[i])
 
-    build_features(training_data, str(label), training_features, training_labels)
-    build_features(cross_validation_data, str(label), validation_features, validation_labels)
+    build_features(training_data, str(label),
+                   training_features, training_labels)
+    build_features(cross_validation_data, str(label),
+                   validation_features, validation_labels)
 
 
 if __name__ == '__main__':
 
-    # Only 5 emotions have been used, since there were very less examples for the remaining emotions.
+    # Only 5 emotions have been used, since there were very less examples for
+    # the remaining emotions.
     emotions = ['disgust', 'surprise', 'neutral', 'happy', 'anger']
     np.random.shuffle(emotions)
 
@@ -91,21 +98,12 @@ if __name__ == '__main__':
     labels['happy'] = 4
     labels['anger'] = 5
 
-    # Files to store the features.
-    training_features = open('TrainingFeatures.txt', 'w')
-    validation_features = open('ValidationFeatures.txt', 'w')
-    training_labels = open('TrainingLabels.txt', 'w')
-    validation_labels = open('ValidationLabels.txt', 'w')
+    with open('TrainingFeatures.txt', 'w') as training_features, open('ValidationFeatures.txt', 'w') as validation_features, open('TrainingLabels.txt', 'w') as training_labels, open('ValidationLabels.txt', 'w') as validation_labels:
+        # Used for detecting landmarks on the face.
+        detector = dlib.get_frontal_face_detector()
+        predictor = dlib.shape_predictor(
+            "shape_predictor_68_face_landmarks.dat")
 
-    # Used for detecting landmarks on the face.
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-
-    # Build training and testing data for each emotion.
-    for emotion in emotions:
-        build_data(emotion, labels[emotion])
-
-    training_features.close()
-    validation_features.close()
-    training_labels.close()
-    validation_labels.close()
+        # Build training and testing data for each emotion.
+        for emotion in emotions:
+            build_data(emotion, labels[emotion])
